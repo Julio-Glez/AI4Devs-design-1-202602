@@ -6,7 +6,7 @@
 
 ## 🌟 Valor Añadido y Ventajas Competitivas
 
-* **Transparencia Radical:** Portal de autoservicio para que el candidato controle su proceso en tiempo real.
+* **Transparencia Radical:** El candidato tiene el control total de su proceso a través de un portal de autoservicio con actualizaciones en tiempo real.
 * **Fricción Cero:** Integración profunda con **WhatsApp** para comunicaciones críticas, eliminando la dependencia de correos electrónicos.
 * **Ecosistema Conectado:** Integración nativa en el flujo de trabajo de la startup (**Slack, Teams, Google/Outlook**).
 
@@ -88,7 +88,12 @@ block-beta
 
 ## 📋 Casos de Uso Principales
 
-### Diagrama de Casos de Uso (Mermaid Compatible)
+### Definición de Casos de Uso
+* **UC-01: Gestión y Publicación de Vacantes:** El reclutador crea descripciones de puesto, define etapas del pipeline y publica en portales automáticamente.
+* **UC-02: Seguimiento Transparente de Candidatura:** El candidato consulta su estado en tiempo real vía Portal y recibe notificaciones automáticas por WhatsApp.
+* **UC-03: Evaluación Colaborativa e Integrada:** El equipo evalúa perfiles y deja feedback directamente desde Slack/Teams, sincronizando el estado en el ATS.
+
+### Diagrama de Casos de Uso (Mermaid)
 
 ```mermaid
 graph LR
@@ -98,31 +103,28 @@ graph LR
     Manager[Hiring Manager]
     
     subgraph "Sistema LTI ATS"
-        UC1((UC-01: Gestionar y Publicar Vacantes))
-        UC2((UC-02: Consultar Estado y Recibir Notificaciones))
-        UC3((UC-03: Evaluar Candidato en Pipeline))
-        UC4((Sincronizar con Slack/Teams))
+        UC1((UC-01: Gestión Vacantes))
+        UC2((UC-02: Seguimiento Transparente))
+        UC3((UC-03: Evaluación Colaborativa))
+        UC4((Sincronizar Slack/Teams))
         UC5((Enviar Alerta WhatsApp))
     end
 
     %% Sistemas Externos
-    WhatsApp[[WhatsApp API <br/> System]]
-    Slack[[Slack/Teams API <br/> System]]
+    WhatsApp[[WhatsApp API]]
+    Slack[[Slack API]]
 
-    %% Relaciones
     Recruiter --- UC1
     Recruiter --- UC3
     Candidate --- UC2
     Manager --- UC3
 
-    %% Inclusiones
     UC2 -.->|include| UC5
     UC3 -.->|include| UC4
     
     UC5 --- WhatsApp
     UC4 --- Slack
 
-    %% Estilos
     style UC1 fill:#fff,stroke:#333,stroke-width:2px
     style UC2 fill:#fff,stroke:#333,stroke-width:2px
     style UC3 fill:#fff,stroke:#333,stroke-width:2px
@@ -132,7 +134,17 @@ graph LR
 
 ---
 
-## 💾 Modelo de Datos (ERD)
+## 💾 Modelo de Datos
+
+### Entidades Principales y Atributos
+1.  **Candidato (Candidate):** Perfil del talento. Incluye `id`, `email`, `telefono_whatsapp`, `token_portal` (acceso sin password) y `cv_url`.
+2.  **Vacante (Job_Opening):** Requisitos del puesto. Incluye `id`, `titulo`, `estado` (Abierta, Cerrada) e `id_hiring_manager`.
+3.  **Etapa_Pipeline (Pipeline_Stage):** Pasos del proceso (ej. "Entrevista Técnica"). Incluye `id`, `nombre_etapa` y `orden`.
+4.  **Aplicación (Application):** Relación candidato-vacante. Registra `id_etapa_actual`, `fecha_postulacion` y `estado_proceso`.
+5.  **Evaluación (Assessment):** Feedback del equipo. Incluye `calificacion`, `comentarios` y `slack_thread_id`.
+6.  **Notificación (Notification):** Log de auditoría. Registra `canal` (WhatsApp/Slack), `contenido` y `estado_envio`.
+
+### Diagrama Entidad-Relación (ERD)
 
 ```mermaid
 erDiagram
@@ -142,13 +154,10 @@ erDiagram
     APLICACION ||--o{ EVALUACION : "genera"
     APLICACION ||--o{ NOTIFICACION : "registra comunicacion"
     APLICACION }|--|| ETAPA_PIPELINE : "esta en"
-    USUARIO_INTERNO ||--o{ VACANTE : "gestiona"
-    USUARIO_INTERNO ||--o{ EVALUACION : "entrevista"
 
     CANDIDATO {
         uuid id
         string nombre
-        string email
         string telefono_whatsapp
         string token_portal
     }
@@ -159,9 +168,8 @@ erDiagram
     }
     APLICACION {
         uuid id
-        uuid id_candidato
-        uuid id_vacante
         string estado_proceso
+        datetime fecha_creacion
     }
 ```
 
@@ -169,79 +177,60 @@ erDiagram
 
 ## 🏗 Arquitectura del Sistema (EDA)
 
-LTI utiliza una **Arquitectura Orientada a Eventos (EDA)** para garantizar una respuesta inmediata a miles de eventos concurrentes de WhatsApp y Slack.
+LTI utiliza una **Arquitectura Orientada a Eventos (EDA)** para garantizar escalabilidad y desacoplamiento entre la IA, las notificaciones y el núcleo del sistema.
 
-### Flujo de Datos Detallado
+### Flujo de Datos (Arquitectura Detallada)
 
 ```mermaid
 graph TB
     subgraph "External_Actors"
         C[Candidato]
-        WA_API[WhatsApp Business API]
-        SL_API[Slack/Teams API]
-        AI_API[OpenAI / Gemini API]
+        WA_API[WhatsApp API]
+        SL_API[Slack API]
+        AI_API[OpenAI API]
     end
 
     subgraph "LTI_Infrastructure"
         AGW[API Gateway]
+        WH_GW[Webhook Ingestor]
+        Bus((Event Bus))
         
-        subgraph "Ingestors_Webhooks"
-            WH_WA[Webhook Handler: WhatsApp]
-            WH_SL[Webhook Handler: Slack]
+        subgraph "Services"
+            AppSvc[Core ATS Service]
+            AISvc[AI Worker]
+            NotifSvc[Notification Engine]
         end
 
-        subgraph "Message_Broker_Event_Bus"
-            Bus((Event Bus / Message Broker))
-        end
-
-        subgraph "Microservices_Consumers"
-            AppSvc[Application & Job Service]
-            AISvc[AI Worker Service]
-            NotifSvc[Notification Service]
-            PortalSvc[Candidate Portal API]
-        end
-
-        DB[(PostgreSQL Database)]
+        DB[(PostgreSQL)]
     end
 
-    C -->|Consulta| AGW
-    AGW --> PortalSvc
-    PortalSvc -.->|Polling| DB
-
-    WA_API -->|Events| WH_WA
-    SL_API -->|Events| WH_SL
-    
-    WH_WA -->|Publish| Bus
-    WH_SL -->|Publish| Bus
-
-    Bus -->|Consume| AppSvc
-    AppSvc -->|Read/Write| DB
-    
-    AppSvc -->|Publish| Bus
-    Bus -->|Consume| AISvc
-    AISvc -->|Processing| AI_API
-    AISvc -->|Update| Bus
-
-    Bus -->|Consume| NotifSvc
-    NotifSvc -->|Send| WA_API
-    NotifSvc -->|Send| SL_API
+    WA_API --> WH_GW
+    SL_API --> WH_GW
+    WH_GW --> Bus
+    Bus --> AppSvc
+    AppSvc --> DB
+    AppSvc --> Bus
+    Bus --> AISvc
+    AISvc --> AI_API
+    Bus --> NotifSvc
+    NotifSvc --> WA_API
+    NotifSvc --> SL_API
 
     style Bus fill:#f96,stroke:#333,stroke-width:4px
-    style DB fill:#69f,stroke:#333,stroke-width:2px
 ```
 
-### Diagrama de Contenedores (C4 Model)
+### Diagrama C4 (Contenedores)
 
 ```mermaid
 C4Context
     title Diagrama de Contenedores LTI ATS
     
-    Person(candidate, "Candidato", "Interactúa vía Portal y WhatsApp.")
-    Person(recruiter, "Equipo RRHH", "Gestiona desde la Web y Slack.")
+    Person(candidate, "Candidato", "Usa Portal y WhatsApp.")
+    Person(recruiter, "Equipo RRHH", "Usa Slack y Dashboard.")
 
     System_Boundary(lti_system, "Sistema LTI ATS") {
         Container(portal, "Portal Candidato", "React", "Visualización de progreso.")
-        Container(webhook_gw, "Webhook Gateway", "Go", "Ingesta de eventos externos.")
+        Container(webhook_gw, "Webhook Gateway", "Go", "Ingesta de eventos masivos.")
         ContainerQueue(event_bus, "Event Bus", "Redis", "Bus de eventos asíncronos.")
         Container(core_svc, "Core ATS", "Python", "Lógica de negocio.")
         Container(ai_worker, "AI Worker", "Python", "Procesamiento de CVs.")
@@ -255,8 +244,7 @@ C4Context
     Rel(whatsapp, webhook_gw, "Webhooks")
     Rel(webhook_gw, event_bus, "Publish")
     Rel(event_bus, core_svc, "Consume")
-    Rel(core_svc, ai_worker, "Request Analysis")
-    Rel(ai_worker, ai_api, "Process")
+    Rel(core_svc, ai_worker, "Análisis IA")
 ```
 
 ---
