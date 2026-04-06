@@ -1,14 +1,14 @@
 # LTI - Ecosistema de Reclutamiento Inteligente 🚀
 
-**LTI** es un sistema de seguimiento de candidatos (ATS) de nueva generación diseñado para eliminar el "agujero negro" de las aplicaciones laborales. A diferencia de los sistemas tradicionales que actúan como bases de datos pasivas, LTI es una plataforma bidireccional que prioriza la experiencia del candidato y la agilidad operativa de las startups y scaleups.
+**LTI** es un sistema de seguimiento de candidatos (ATS) de nueva generación diseñado para eliminar el "agujero negro" de las aplicaciones laborales. A diferencia de los sistemas tradicionales, LTI es una plataforma bidireccional que prioriza la experiencia del candidato y la agilidad operativa de las startups.
 
 ---
 
 ## 🌟 Valor Añadido y Ventajas Competitivas
 
-* **Transparencia Radical:** El candidato tiene el control total de su proceso a través de un portal de autoservicio con actualizaciones en tiempo real.
-* **Fricción Cero:** Integración profunda con **WhatsApp** para comunicaciones críticas y recordatorios, eliminando la dependencia de correos electrónicos.
-* **Ecosistema Conectado:** Flujo de trabajo integrado de forma nativa en **Slack y Microsoft Teams**, permitiendo decisiones rápidas sin salir de la herramienta de comunicación.
+* **Transparencia Radical:** Portal de autoservicio para que el candidato controle su proceso en tiempo real.
+* **Fricción Cero:** Integración profunda con **WhatsApp** para comunicaciones críticas, eliminando la dependencia de correos electrónicos.
+* **Ecosistema Conectado:** Integración nativa en el flujo de trabajo de la startup (**Slack, Teams, Google/Outlook**).
 
 ---
 
@@ -16,9 +16,9 @@
 
 1.  **Candidate Experience Portal (CEP):** Panel personalizado para aspirantes con visualización de etapas y perfiles de entrevistadores.
 2.  **WhatsApp Sync & Automation:** Bot para envío de resúmenes, confirmación de asistencia y reprogramación automática.
-3.  **Collaborative Pipeline (Slack/Teams Native):** Notificaciones inteligentes con botones de acción (Aprobar/Rechazar) en canales internos.
-4.  **Smart Sourcing & Parsing:** Motor de IA para extracción automática de datos de CVs y pre-clasificación inteligente.
-5.  **Unified Calendar & Interview Suite:** Sincronización de agendas y generación automática de enlaces para reuniones virtuales.
+3.  **Collaborative Pipeline (Slack/Teams Native):** Notificaciones inteligentes con botones de acción directamente en canales de equipo.
+4.  **Smart Sourcing & Parsing:** Motor de IA para extracción de datos de CVs y pre-clasificación inteligente.
+5.  **Unified Calendar & Interview Suite:** Sincronización de agendas y generación automática de salas virtuales.
 
 ---
 
@@ -88,74 +88,80 @@ block-beta
 
 ## 📋 Casos de Uso Principales
 
-| ID | Caso de Uso | Actor | Descripción |
-| :--- | :--- | :--- | :--- |
-| **UC-01** | Gestión de Vacantes | Reclutador | Creación de vacante y publicación automatizada. |
-| **UC-02** | Seguimiento de Candidatura | Candidato | Consulta de estado y alertas vía WhatsApp. |
-| **UC-03** | Evaluación Colaborativa | Hiring Manager | Feedback y toma de decisión desde Slack/Teams. |
+### Diagrama de Casos de Uso (Mermaid Compatible)
 
-### Diagrama de Casos de Uso (UML)
+```mermaid
+graph LR
+    %% Actores
+    Recruiter[Reclutador]
+    Candidate[Candidato]
+    Manager[Hiring Manager]
+    
+    subgraph "Sistema LTI ATS"
+        UC1((UC-01: Gestionar y Publicar Vacantes))
+        UC2((UC-02: Consultar Estado y Recibir Notificaciones))
+        UC3((UC-03: Evaluar Candidato en Pipeline))
+        UC4((Sincronizar con Slack/Teams))
+        UC5((Enviar Alerta WhatsApp))
+    end
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
+    %% Sistemas Externos
+    WhatsApp[[WhatsApp API <br/> System]]
+    Slack[[Slack/Teams API <br/> System]]
 
-actor "Reclutador" as Recruiter
-actor "Candidato" as Candidate
-actor "Hiring Manager" as Manager
+    %% Relaciones
+    Recruiter --- UC1
+    Recruiter --- UC3
+    Candidate --- UC2
+    Manager --- UC3
 
-package "Sistema LTI ATS" {
-    usecase "UC-01: Gestionar y Publicar Vacantes" as UC1
-    usecase "UC-02: Consultar Estado y Recibir Notificaciones" as UC2
-    usecase "UC-03: Evaluar Candidato en Pipeline" as UC3
-    usecase "Sincronizar con Slack/Teams" as UC4
-    usecase "Enviar Alerta WhatsApp" as UC5
-}
+    %% Inclusiones
+    UC2 -.->|include| UC5
+    UC3 -.->|include| UC4
+    
+    UC5 --- WhatsApp
+    UC4 --- Slack
 
-actor "WhatsApp API" as WhatsApp <<System>>
-actor "Slack/Teams API" as Slack <<System>>
-
-Recruiter -- UC1
-Recruiter -- UC3
-Candidate -- UC2
-Manager -- UC3
-
-UC2 ..> UC5 : <<include>>
-UC3 ..> UC4 : <<include>>
-UC5 -- WhatsApp
-UC4 -- Slack
-@enduml
+    %% Estilos
+    style UC1 fill:#fff,stroke:#333,stroke-width:2px
+    style UC2 fill:#fff,stroke:#333,stroke-width:2px
+    style UC3 fill:#fff,stroke:#333,stroke-width:2px
+    style UC4 fill:#fff,stroke:#333,stroke-width:2px
+    style UC5 fill:#fff,stroke:#333,stroke-width:2px
 ```
 
 ---
 
-## 💾 Modelo de Datos
-
-### Entidades y Relaciones
-* **Candidato:** `id`, `nombre`, `telefono_whatsapp`, `token_portal`.
-* **Vacante:** `id`, `titulo`, `estado`, `id_hiring_manager`.
-* **Aplicación:** `id`, `id_candidato`, `id_vacante`, `estado_proceso`.
-* **Evaluación:** `id`, `id_aplicacion`, `calificacion`, `slack_thread_id`.
+## 💾 Modelo de Datos (ERD)
 
 ```mermaid
 erDiagram
     CANDIDATO ||--o{ APLICACION : "se postula"
     VACANTE ||--o{ APLICACION : "recibe"
+    VACANTE ||--o{ ETAPA_PIPELINE : "define flujo"
     APLICACION ||--o{ EVALUACION : "genera"
     APLICACION ||--o{ NOTIFICACION : "registra comunicacion"
+    APLICACION }|--|| ETAPA_PIPELINE : "esta en"
     USUARIO_INTERNO ||--o{ VACANTE : "gestiona"
+    USUARIO_INTERNO ||--o{ EVALUACION : "entrevista"
 
     CANDIDATO {
         uuid id
         string nombre
+        string email
         string telefono_whatsapp
         string token_portal
     }
+    VACANTE {
+        uuid id
+        string titulo
+        string estado
+    }
     APLICACION {
         uuid id
+        uuid id_candidato
+        uuid id_vacante
         string estado_proceso
-        datetime fecha_creacion
     }
 ```
 
@@ -163,39 +169,95 @@ erDiagram
 
 ## 🏗 Arquitectura del Sistema (EDA)
 
-LTI utiliza una **Arquitectura Orientada a Eventos (EDA)** con microservicios desacoplados para garantizar escalabilidad y eficiencia en la ingesta de webhooks masivos.
+LTI utiliza una **Arquitectura Orientada a Eventos (EDA)** para garantizar una respuesta inmediata a miles de eventos concurrentes de WhatsApp y Slack.
 
-### Diagrama C4 (Contenedores e Integraciones)
+### Flujo de Datos Detallado
+
+```mermaid
+graph TB
+    subgraph "External_Actors"
+        C[Candidato]
+        WA_API[WhatsApp Business API]
+        SL_API[Slack/Teams API]
+        AI_API[OpenAI / Gemini API]
+    end
+
+    subgraph "LTI_Infrastructure"
+        AGW[API Gateway]
+        
+        subgraph "Ingestors_Webhooks"
+            WH_WA[Webhook Handler: WhatsApp]
+            WH_SL[Webhook Handler: Slack]
+        end
+
+        subgraph "Message_Broker_Event_Bus"
+            Bus((Event Bus / Message Broker))
+        end
+
+        subgraph "Microservices_Consumers"
+            AppSvc[Application & Job Service]
+            AISvc[AI Worker Service]
+            NotifSvc[Notification Service]
+            PortalSvc[Candidate Portal API]
+        end
+
+        DB[(PostgreSQL Database)]
+    end
+
+    C -->|Consulta| AGW
+    AGW --> PortalSvc
+    PortalSvc -.->|Polling| DB
+
+    WA_API -->|Events| WH_WA
+    SL_API -->|Events| WH_SL
+    
+    WH_WA -->|Publish| Bus
+    WH_SL -->|Publish| Bus
+
+    Bus -->|Consume| AppSvc
+    AppSvc -->|Read/Write| DB
+    
+    AppSvc -->|Publish| Bus
+    Bus -->|Consume| AISvc
+    AISvc -->|Processing| AI_API
+    AISvc -->|Update| Bus
+
+    Bus -->|Consume| NotifSvc
+    NotifSvc -->|Send| WA_API
+    NotifSvc -->|Send| SL_API
+
+    style Bus fill:#f96,stroke:#333,stroke-width:4px
+    style DB fill:#69f,stroke:#333,stroke-width:2px
+```
+
+### Diagrama de Contenedores (C4 Model)
 
 ```mermaid
 C4Context
-    title Arquitectura LTI ATS - Foco en Eventos y Sistemas Externos
-
-    Person(candidate, "Candidato", "Usa Portal y WhatsApp.")
-    Person(recruiter, "Equipo RRHH", "Usa Slack y Web Dashboard.")
+    title Diagrama de Contenedores LTI ATS
+    
+    Person(candidate, "Candidato", "Interactúa vía Portal y WhatsApp.")
+    Person(recruiter, "Equipo RRHH", "Gestiona desde la Web y Slack.")
 
     System_Boundary(lti_system, "Sistema LTI ATS") {
-        Container(webhook_gw, "Webhook Gateway", "Go/Node", "Ingesta masiva de eventos externos.")
-        ContainerQueue(event_bus, "Event Bus", "Redis/RabbitMQ", "Bus de eventos asíncronos.")
-        Container(core_svc, "Core ATS", "Python", "Lógica de negocio y persistencia.")
-        Container(ai_worker, "AI Worker", "Python", "Integración con APIs de IA externas.")
-        Container(notif_engine, "Notification Engine", "Node.js", "Salida de mensajes (WA/Slack).")
+        Container(portal, "Portal Candidato", "React", "Visualización de progreso.")
+        Container(webhook_gw, "Webhook Gateway", "Go", "Ingesta de eventos externos.")
+        ContainerQueue(event_bus, "Event Bus", "Redis", "Bus de eventos asíncronos.")
+        Container(core_svc, "Core ATS", "Python", "Lógica de negocio.")
+        Container(ai_worker, "AI Worker", "Python", "Procesamiento de CVs.")
         ContainerDb(db, "Database", "PostgreSQL", "Persistencia centralizada.")
     }
 
     System_Ext(whatsapp, "WhatsApp API")
     System_Ext(slack, "Slack API")
-    System_Ext(ai_api, "OpenAI / Gemini API")
+    System_Ext(ai_api, "OpenAI API")
 
     Rel(whatsapp, webhook_gw, "Webhooks")
-    Rel(webhook_gw, event_bus, "Publica eventos")
-    Rel(event_bus, core_svc, "Procesa lógica")
-    Rel(core_svc, ai_worker, "Solicita análisis")
-    Rel(ai_worker, ai_api, "Procesa CV")
-    Rel(event_bus, notif_engine, "Dispara notificaciones")
-    Rel(notif_engine, whatsapp, "Envía mensaje")
-    Rel(notif_engine, slack, "Actualiza canal")
+    Rel(webhook_gw, event_bus, "Publish")
+    Rel(event_bus, core_svc, "Consume")
+    Rel(core_svc, ai_worker, "Request Analysis")
+    Rel(ai_worker, ai_api, "Process")
 ```
 
 ---
-*Documento de arquitectura y producto para LTI - 2026.*
+*LTI ATS - Documentación de Producto y Arquitectura - 2026.*
